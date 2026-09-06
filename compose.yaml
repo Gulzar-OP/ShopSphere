@@ -48,6 +48,36 @@ services:
       retries: 5
       start_period: 20s
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: shopsphere-auth-service
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5001/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    env_file:
+      - ./services/auth-service/.env
+    environment:
+      PORT: 5001
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongodb:27017/shopsphere_auth
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
 volumes:
   mongodb_data:
   redis_data:
