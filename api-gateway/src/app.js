@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import rateLimit from 'express-rate-limit'
 import authProxy from './proxies/authProxy.js';
+import productProxy from "./proxies/productProxy.js";
+import authenticateProductMutation from "./middlewares/authenticateProductMutation.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -31,6 +33,11 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 app.use("/api/auth", authProxy);
+app.use(
+  "/api/products",
+  authenticateProductMutation,
+  productProxy
+);
 
 
 app.get("/", (req, res) => {

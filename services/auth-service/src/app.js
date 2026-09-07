@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 
 import authRoutes from "./routes/authRoutes.js";
+import internalRoutes from "./routes/internalRoutes.js";
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/internal", internalRoutes);
 
 // Undefined route
 app.use((req, res) => {
