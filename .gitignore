@@ -18,3 +18,5 @@ __pycache__/
 .venv/
 
 docker-data/
+
+docs/notes.txt
