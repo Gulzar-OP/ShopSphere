@@ -108,6 +108,39 @@ services:
       retries: 5
       start_period: 15s
 
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile
+    container_name: shopsphere-inventory-service
+    restart: unless-stopped
+    env_file:
+      - ./services/inventory-service/.env
+    environment:
+      PORT: 5003
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongodb:27017/shopsphere_inventory
+      RABBITMQ_URL: amqp://shopsphere:shopsphere123@rabbitmq:5672
+    expose:
+      - "5003"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5003/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 
   api-gateway:
     build:
@@ -122,12 +155,15 @@ services:
       NODE_ENV: development
       AUTH_SERVICE_URL: http://auth-service:5001
       PRODUCT_SERVICE_URL: http://product-service:5002
+      INVENTORY_SERVICE_URL: http://inventory-service:5003
     ports:
       - "5050:5050"
     depends_on:
       auth-service:
         condition: service_healthy
       product-service:
+        condition: service_healthy
+      inventory-service:
         condition: service_healthy
     healthcheck:
       test:

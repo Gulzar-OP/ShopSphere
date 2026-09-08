@@ -1,9 +1,9 @@
-const authenticateProductMutation = async (
+const authenticateMutation = async (
   req,
   res,
   next
 ) => {
-  // Public product-reading requests
+  // Public read-only requests
   if (
     req.method === "GET" ||
     req.method === "HEAD" ||
@@ -14,15 +14,19 @@ const authenticateProductMutation = async (
 
   try {
     const headers = {
-      "x-internal-api-key": process.env.INTERNAL_API_KEY,
+      "x-internal-api-key":
+        process.env.INTERNAL_API_KEY,
     };
 
+    // Forward cookie if present
     if (req.headers.cookie) {
       headers.cookie = req.headers.cookie;
     }
 
+    // Forward Bearer token if present
     if (req.headers.authorization) {
-      headers.authorization = req.headers.authorization;
+      headers.authorization =
+        req.headers.authorization;
     }
 
     const response = await fetch(
@@ -36,20 +40,24 @@ const authenticateProductMutation = async (
 
     const data = await response.json();
 
+    // Authentication failed
     if (!response.ok) {
       return res.status(response.status).json({
         success: false,
-        message: data.message || "Authentication failed",
+        message:
+          data.message || "Authentication failed",
       });
     }
 
-    if (data.user.role !== "admin") {
-      return res.status(403).json({
+    // Safety check
+    if (!data.user) {
+      return res.status(401).json({
         success: false,
-        message: "Admin permission required",
+        message: "Authenticated user not found",
       });
     }
 
+    // Store verified user
     req.authenticatedUser = data.user;
 
     return next();
@@ -60,9 +68,10 @@ const authenticateProductMutation = async (
 
     return res.status(503).json({
       success: false,
-      message: "Authentication Service is unavailable",
+      message:
+        "Authentication Service is unavailable",
     });
   }
 };
 
-export default authenticateProductMutation;
+export default authenticateMutation;
