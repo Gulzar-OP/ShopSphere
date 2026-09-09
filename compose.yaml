@@ -141,6 +141,41 @@ services:
       retries: 5
       start_period: 30s
 
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: shopsphere-order-service
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - product-service
+      - inventory-service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5004/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      PORT: 5004
+      NODE_ENV: development
+      CLIENT_URL: http://localhost:5173
+      MONGO_URI: mongodb://mongodb:27017/shopsphere_orders
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      PRODUCT_SERVICE_URL: http://product-service:5002
+      INVENTORY_SERVICE_URL: http://inventory-service:5003
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    ports:
+      - "5004:5004"
+
 
   api-gateway:
     build:
@@ -156,6 +191,7 @@ services:
       AUTH_SERVICE_URL: http://auth-service:5001
       PRODUCT_SERVICE_URL: http://product-service:5002
       INVENTORY_SERVICE_URL: http://inventory-service:5003
+      ORDER_SERVICE_URL: http://order-service:5004
     ports:
       - "5050:5050"
     depends_on:
@@ -164,6 +200,8 @@ services:
       product-service:
         condition: service_healthy
       inventory-service:
+        condition: service_healthy
+      order-service:
         condition: service_healthy
     healthcheck:
       test:
