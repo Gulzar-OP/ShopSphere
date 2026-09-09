@@ -2,8 +2,12 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import productRoutes from "./routes/productRoutes.js";
-import internalProductRoutes from "./routes/internalProductRoutes.js";
+import mongoose from "mongoose";
+import orderRoutes from "./routes/orderRoutes.js";
+
+import {
+  isRabbitMQConnected,
+} from "./config/rabbitmq.js";
 
 const app = express();
 
@@ -23,37 +27,34 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-app.use("/products", productRoutes);
-app.use(
-  "/internal",
-  internalProductRoutes
-);
-
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
-    message: "ShopSphere Product Service is running",
+    message:
+      "ShopSphere Order Service is running",
   });
 });
+
+app.use("/orders", orderRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    service: "product-service",
+    service: "order-service",
     status: "healthy",
     timestamp: new Date().toISOString(),
   });
 });
 
 app.use((req, res) => {
-  res.status(404).json({
+  return res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
 
 app.use((error, req, res, next) => {
-  console.error("Product Service error:", error);
+  console.error("Order Service error:", error);
 
   if (error.name === "CastError") {
     return res.status(400).json({
@@ -63,9 +64,11 @@ app.use((error, req, res, next) => {
   }
 
   if (error.name === "ValidationError") {
-    const errors = Object.values(error.errors).map(
-      (validationError) => validationError.message
-    );
+    const errors = Object.values(
+      error.errors
+    ).map((validationError) => {
+      return validationError.message;
+    });
 
     return res.status(400).json({
       success: false,
@@ -77,14 +80,21 @@ app.use((error, req, res, next) => {
   if (error.code === 11000) {
     return res.status(409).json({
       success: false,
-      message: "A record with this value already exists",
+      message:
+        "An order with this value already exists",
     });
   }
 
-  return res.status(error.statusCode || 500).json({
-    success: false,
-    message: error.message || "Internal server error",
-  });
+  return res
+    .status(error.statusCode || 500)
+    .json({
+      success: false,
+      message:
+        error.message || "Internal server error",
+      ...(error.details && {
+        errors: error.details,
+      }),
+    });
 });
 
 export default app;

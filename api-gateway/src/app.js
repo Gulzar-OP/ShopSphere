@@ -9,6 +9,8 @@ import productProxy from "./proxies/productProxy.js";
 import inventoryProxy from "./proxies/inventoryProxy.js";
 
 import authenticateMutation from "./middlewares/authenticateMutation.js";
+import orderProxy from "./proxies/orderProxy.js";
+import authenticateRequest from "./middlewares/authenticateRequest.js";
 
 const app = express();
 
@@ -55,6 +57,12 @@ app.use(
   "/api/inventory",
   authenticateMutation,
   inventoryProxy
+);
+
+app.use(
+  "/api/orders",
+  authenticateRequest,
+  orderProxy
 );
 
 app.get("/", (req, res) => {
